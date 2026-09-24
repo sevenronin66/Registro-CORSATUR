@@ -228,9 +228,14 @@
     return ix;
   }
 
+  var observador = window.IntersectionObserver ? new IntersectionObserver(function (entradas) {
+    entradas.forEach(function (en) { if (en.isIntersecting) { observador.unobserve(en.target); en.target._crear(); } });
+  }, { rootMargin: '400px 0px' }) : null;
+
   function pintarTodo() {
     estado.graficos.forEach(function (c) { c.destroy(); });
     estado.graficos = [];
+    if (observador) observador.disconnect();
     pintarSegmentos();
     var dias = diasVentana(), ix = indice();
     $('rangoTxt').textContent = 'Del ' + larga(dias[0]) + ' al ' + larga(dias[dias.length - 1]);
@@ -312,7 +317,7 @@
 
     if (vals.length) {
       var colorLinea = g.color;
-      var ch = new Chart(cv, {
+      var crear = function () { if (cv._hecho) return; cv._hecho = true; var ch = new Chart(cv, {
         type: 'line',
         data: {
           labels: dias.map(corta),
@@ -349,8 +354,9 @@
           }
         },
         plugins: [pluginBanda]
-      });
-      estado.graficos.push(ch);
+      }); estado.graficos.push(ch); };
+      // La gráfica se dibuja cuando se acerca a la pantalla (el teléfono no dibuja las 28 de golpe).
+      if (observador) { cv._crear = crear; observador.observe(cv); } else crear();
       var ley = document.createElement('div'); ley.className = 'leyenda';
       ley.innerHTML = '<span><i class="l" style="background:' + colorLinea + '"></i>Lectura diaria</span>' +
         (p.min != null || p.max != null ? '<span><i class="b"></i>Rango del contrato</span><span><i class="p"></i>Fuera de rango</span>' : '');
@@ -395,9 +401,11 @@
   $('entrar').addEventListener('click', function () {
     var c = $('clave').value.trim(); if (!c) return;
     var b = $('entrar'); b.disabled = true; b.textContent = 'Verificando…';
-    servidor('verificarVista', c).then(function () {
+    servidor('serieDatos', c).then(function (d) {
       escribir(K.clave, c); $('clave').value = '';
-      return cargar();
+      d.ts = Date.now(); estado.datos = d;
+      try { escribir(K.datos, JSON.stringify(d)); } catch (e) {}
+      $('avisoOffline').hidden = true; mostrar();
     }).catch(function (e) { mostrarLogin(esDeRed(e) ? 'Sin conexión. Intentá de nuevo con internet.' : mensaje(e)); })
       .then(function () { b.disabled = false; b.textContent = 'Entrar'; });
   });

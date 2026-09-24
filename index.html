@@ -665,7 +665,7 @@
   function reemplazarItem(paquete, item, nuevo) {
     var l = fotosDe(paquete.grupo, paquete.param).map(function (x) { return x === item ? nuevo : x; });
     ponerFotos(paquete.grupo, paquete.param, l);
-    if (paquete.fecha === estado.fecha) refrescarFotos();
+    if (paquete.fecha === estado.fecha) { refrescarFotos(); recordarDia(); }
   }
   function quitarItem(paquete, item) {
     ponerFotos(paquete.grupo, paquete.param, fotosDe(paquete.grupo, paquete.param).filter(function (x) { return x !== item; }));
@@ -689,7 +689,7 @@
     if (!item.id) return;
     servidor('borrarFoto', item.id).then(function () {
       ponerFotos(g.id, 'actividad', fotosDe(g.id, 'actividad').filter(function (x) { return x !== item; }));
-      refrescarFotos(); toast('Foto quitada');
+      refrescarFotos(); recordarDia(); toast('Foto quitada');
     }).catch(function (e) { toast(esDeRed(e) ? 'Sin señal: no se puede quitar la foto ahora.' : mensaje(e), true); });
   }
 
@@ -815,40 +815,95 @@
   function vacio() { var o = {}; GRUPOS.forEach(function (g) { o[g.id] = {}; }); return o; }
   function copiar(o) { var c = vacio(); GRUPOS.forEach(function (g) { var s = (o && o[g.id]) || {}; for (var k in s) c[g.id][k] = txtDe(s[k]); }); return c; }
 
-  function cargarDia(fecha) {
-    estado.fecha = fecha; estado.pedirDecision = false; estado.fechaPendiente = null;
-    pintarFecha();
-    $('app').classList.add('cargando');
-    $('pieTxt').textContent = 'Cargando datos del día…';
-    estado.fotos = {};
+  /* Memoria del día en el teléfono: la app muestra al instante lo último que vio
+     y lo actualiza apenas responde Google. */
+  var PREF_DIA = 'ptar_dia_';
+  function leerCacheDia(fecha) { try { return JSON.parse(leer(PREF_DIA + fecha) || 'null'); } catch (e) { return null; } }
+  function recordarDia() {
+    if (!estado.fecha || !GRUPOS) return;
+    var fotos = {};
+    for (var g in estado.fotos) { fotos[g] = {}; for (var k in estado.fotos[g]) fotos[g][k] = (estado.fotos[g][k] || []).filter(function (x) { return x.id; }); }
+    escribir(PREF_DIA + estado.fecha, JSON.stringify({ valores: estado.original, fotos: fotos }));
+    try { // se guardan solo los últimos 10 días vistos
+      var ks = []; for (var i = 0; i < localStorage.length; i++) { var kk = localStorage.key(i); if (kk && kk.indexOf(PREF_DIA) === 0) ks.push(kk); }
+      ks.sort().slice(0, Math.max(0, ks.length - 10)).forEach(function (x) { localStorage.removeItem(x); });
+    } catch (e) {}
+  }
+  function pedirDia(fecha) {
     return servidor('obtenerDia2', fecha).catch(function (e) {
       // Compatibilidad: si el motor de Google todavía es la versión anterior.
       if (/no permitida/i.test(mensaje(e))) return servidor('obtenerDia', fecha).then(function (v) { return { valores: v, fotos: {} }; });
       throw e;
-    }).then(function (datos) {
-      estado.original = copiar(datos.valores);
-      estado.fotos = datos.fotos || {};
+    });
+  }
+
+  var cargaN = 0;
+  function cargarDia(fecha, promesa) {
+    estado.fecha = fecha; estado.pedirDecision = false; estado.fechaPendiente = null;
+    pintarFecha();
+    var turno = ++cargaN;
+    var cache = leerCacheDia(fecha);
+    var listoCache = cache ? aplicarDia(fecha, cache, false) : Promise.resolve();
+    if (!cache) {
+      $('app').classList.add('cargando');
+      $('pieTxt').textContent = 'Cargando datos del día…';
+      estado.fotos = {};
+    }
+    return listoCache.then(function () { return promesa || pedirDia(fecha); }).then(function (datos) {
+      if (turno !== cargaN) return;
+      return aplicarDia(fecha, datos, !!cache).then(recordarDia);
     }).catch(function (e) {
-      estado.original = vacio();
-      toast(esDeGoogle(e) ? MSG_GOOGLE + ' Podés anotar igual; se enviará cuando responda.' : esDeRed(e) ? 'Sin señal: podés anotar igual y se enviará cuando vuelva.' : 'No se pudieron cargar los datos: ' + mensaje(e), true);
-    }).then(function () {
-      // Lo que está en espera de señal para este día se muestra como ya anotado.
-      pendientes().forEach(function (p) {
-        if (p.fecha !== fecha) return;
-        for (var g in p.valores) for (var k in p.valores[g]) if (estado.original[g]) estado.original[g][k] = p.valores[g][k];
+      if (turno !== cargaN) return;
+      if (!cache) return aplicarDia(fecha, { valores: {}, fotos: {} }, false).then(function () {
+        toast(esDeGoogle(e) ? MSG_GOOGLE + ' Podés anotar igual; se enviará cuando responda.' : esDeRed(e) ? 'Sin señal: podés anotar igual y se enviará cuando vuelva.' : 'No se pudieron cargar los datos: ' + mensaje(e), true);
       });
-      estado.actual = copiar(estado.original);
-      return idbTodos().then(function (l) {
-        l.forEach(function (p) {
-          if (p.fecha !== fecha) return;
-          var it = { url: p.base64, pend: true, k: p.k };
-          ponerFotos(p.grupo, p.param, p.param === 'actividad' ? fotosDe(p.grupo, 'actividad').concat([it]) : [it]);
-        });
-        nFotosPend = l.length;
-      }).catch(function () {});
-    }).then(function () {
+      if (!esDeRed(e)) toast('No se pudieron actualizar los datos: ' + mensaje(e), true);
+    });
+  }
+
+  // Pone en pantalla los datos de un día. Si "fusionar", respeta lo que el operario ya empezó a escribir.
+  function aplicarDia(fecha, datos, fusionar) {
+    var nuevo = copiar(datos.valores);
+    // Lo que está en espera de señal para este día se muestra como ya anotado.
+    pendientes().forEach(function (p) {
+      if (p.fecha !== fecha) return;
+      for (var g in p.valores) for (var k in p.valores[g]) if (nuevo[g]) nuevo[g][k] = txtDe(p.valores[g][k]);
+    });
+    var viejoO = estado.original, viejoA = estado.actual, actual = copiar(nuevo);
+    if (fusionar) GRUPOS.forEach(function (g) {
+      var claves = {}; [viejoO[g.id], viejoA[g.id], nuevo[g.id]].forEach(function (o) { for (var k in (o || {})) claves[k] = 1; });
+      for (var k in claves) {
+        var a = txtDe((viejoA[g.id] || {})[k]), o = txtDe((viejoO[g.id] || {})[k]);
+        if (a !== o) actual[g.id][k] = a; // el operario lo cambió: se respeta
+      }
+    });
+    var fotos = {};
+    var src = datos.fotos || {};
+    for (var g in src) { fotos[g] = {}; for (var k in src[g]) fotos[g][k] = src[g][k].slice(); }
+    if (fusionar) { // fotos que se están subiendo en este momento
+      for (var g2 in estado.fotos) for (var k2 in estado.fotos[g2]) (estado.fotos[g2][k2] || []).forEach(function (it) {
+        if (!it.subiendo) return;
+        fotos[g2] = fotos[g2] || {};
+        fotos[g2][k2] = k2 === 'actividad' ? (fotos[g2][k2] || []).concat([it]) : [it];
+      });
+    }
+    var antes = fusionar ? JSON.stringify([estado.original, estado.actual, estado.fotos]) : null;
+    estado.original = nuevo; estado.actual = actual; estado.fotos = fotos;
+    return idbTodos().then(function (l) {
+      l.forEach(function (p) {
+        if (p.fecha !== fecha) return;
+        var it = { url: p.base64, pend: true, k: p.k };
+        ponerFotos(p.grupo, p.param, p.param === 'actividad' ? fotosDe(p.grupo, 'actividad').concat([it]) : [it]);
+      });
+      nFotosPend = l.length;
+    }).catch(function () {}).then(function () {
       $('app').classList.remove('cargando');
+      if (fusionar && antes === JSON.stringify([estado.original, estado.actual, estado.fotos])) { pintarPie(); return; }
+      // Repinta sin sacar al operario del campo donde está escribiendo.
+      var foco = document.activeElement && document.activeElement.id, sel = null;
+      try { if (foco) sel = [document.activeElement.selectionStart, document.activeElement.selectionEnd]; } catch (e) {}
       pintarPestanas(); pintarPanel(); pintarPie();
+      if (foco && $(foco)) { $(foco).focus({ preventScroll: true }); try { if (sel) $(foco).setSelectionRange(sel[0], sel[1]); } catch (e) {} }
     });
   }
 
@@ -900,6 +955,7 @@
     }
     estado.pedirDecision = false;
     pintarPestanas(); pintarPanel();
+    recordarDia();
   }
   function encolar(paquete, e) {
     var l = pendientes(); l.push(paquete); guardarPendientes(l);
@@ -1102,16 +1158,26 @@
     var guardada = null;
     try { guardada = JSON.parse(leer(K.config) || 'null'); } catch (e) {}
     var listo = false;
-    function iniciar(cfg) {
+    function iniciar(cfg, promesaDia) {
       if (listo) return; listo = true;
       aplicarConfig(cfg);
       if (!leer(K.operario)) pedirNombre(); else mostrarApp();
-      cargarDia(estado.fecha).then(function () { enviarPendientes(); enviarFotosPendientes(); });
+      cargarDia(estado.fecha, promesaDia).then(function () { enviarPendientes(); enviarFotosPendientes(); });
     }
-    if (guardada && guardada.grupos) iniciar(guardada);
-    servidor('config').then(function (cfg) {
+    // Un solo viaje a Google trae la configuración y los datos de hoy.
+    var fechaInicio = estado.fecha;
+    var pInicio = servidor('inicio', fechaInicio).catch(function (e) {
+      if (!/no permitida/i.test(mensaje(e))) throw e;
+      // El script de Google todavía es una versión anterior.
+      return servidor('config').then(function (cfg) { return { config: cfg, fecha: fechaInicio, dia: null }; });
+    });
+    var pDia = pInicio.then(function (r) { return r.dia && r.fecha === fechaInicio ? r.dia : pedirDia(fechaInicio); });
+    pDia.catch(function () {});
+    if (guardada && guardada.grupos) iniciar(guardada, pDia);
+    pInicio.then(function (r) {
+      var cfg = r.config;
       escribir(K.config, JSON.stringify({ grupos: cfg.grupos }));
-      if (!listo) iniciar(cfg);
+      if (!listo) iniciar(cfg, pDia);
       else if (cfg.hoy && cfg.hoy !== estado.hoy) { estado.hoy = cfg.hoy; pintarFecha(); }
     }).catch(function (e) {
       if (listo) return;
