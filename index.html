@@ -216,6 +216,39 @@
   .error-config h2 { margin: 0 0 6px; font-size: 17px; }
   .error-config p { margin: 0; color: var(--tinta-2); font-size: 14.5px; }
 
+  /* Fotos, casillas y ubicación (versión 2) */
+  .campo { grid-template-columns: 1fr 118px 48px; }
+  .cam { grid-column: 3; grid-row: 1 / span 2; width: 48px; height: 54px; border-radius: 12px; border: 1.5px solid var(--linea); background: var(--papel); display: grid; place-items: center; padding: 0; position: relative; }
+  .cam svg { width: 24px; height: 24px; stroke: var(--marca); fill: none; stroke-width: 1.8; }
+  .cam.tiene { border-color: var(--ok); background: var(--ok-fondo); }
+  .cam.tiene svg { stroke: var(--ok); }
+  .cam .n { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--ok); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+  .fotos-param { grid-column: 1 / -1; display: flex; gap: 8px; margin-top: 8px; }
+  .mini { position: relative; width: 72px; height: 72px; border-radius: 10px; overflow: hidden; background: var(--fondo); border: 1px solid var(--linea); flex: none; }
+  .mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mini .et { position: absolute; left: 0; right: 0; bottom: 0; font-size: 10px; font-weight: 700; text-align: center; padding: 2px; color: #fff; background: rgba(19,33,47,.72); }
+  .mini .et.pend { background: var(--aviso); }
+  .mini .x { position: absolute; top: 3px; right: 3px; width: 24px; height: 24px; border-radius: 12px; border: 0; background: rgba(19,33,47,.75); color: #fff; font-size: 15px; line-height: 1; padding: 0; }
+  .check { display: flex; align-items: center; gap: 14px; padding: 14px; border-bottom: 1px solid var(--linea); background: var(--marca-clara); cursor: pointer; }
+  .check input { width: 28px; height: 28px; accent-color: var(--ok); flex: none; margin: 0; }
+  .check b { display: block; font-size: 15.5px; }
+  .check span { font-size: 12.5px; color: var(--tinta-2); }
+  .check.cambiado b::after { content: " •"; color: var(--aviso); }
+  .actividades { padding: 14px; border-top: 1px solid var(--linea); }
+  .actividades h3 { margin: 0 0 4px; font-size: 15px; }
+  .actividades p { margin: 0 0 10px; font-size: 12.5px; color: var(--tinta-2); }
+  .galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; }
+  .galeria .mini { width: auto; height: auto; aspect-ratio: 1; }
+  .agregar { aspect-ratio: 1; border: 1.5px dashed var(--marca); border-radius: 10px; background: var(--marca-clara); color: var(--marca); font-weight: 700; font-size: 13px; display: grid; place-items: center; text-align: center; padding: 6px; }
+  .ubic { font-size: 11.5px; font-weight: 600; padding: 4px 8px; border-radius: 99px; background: var(--fondo); color: var(--tinta-2); white-space: nowrap; }
+  .ubic.ok { background: var(--ok-fondo); color: var(--ok); }
+  .ubic.no { background: var(--aviso-fondo); color: var(--aviso); }
+  #mapa { height: 320px; margin: 0 14px 10px; border-radius: 10px; border: 1px solid var(--linea); z-index: 0; }
+  .lista-ubic { margin: 0 14px 12px; font-size: 12.5px; max-height: 220px; overflow: auto; border: 1px solid var(--linea); border-radius: 10px; }
+  .lista-ubic div { padding: 8px 10px; border-bottom: 1px solid var(--linea); display: flex; justify-content: space-between; gap: 8px; }
+  .lista-ubic a { color: var(--marca); font-weight: 600; white-space: nowrap; }
+  .sub-admin { font-size: 14px; margin: 6px 14px 8px; }
+  @media (max-width: 370px) { .campo { grid-template-columns: 1fr 104px 44px; } .cam { width: 44px; } }
   @media (min-width: 560px) { .pestanas { grid-template-columns: repeat(4, 1fr); } }
   @media (prefers-reduced-motion: no-preference) { .toast { animation: sube .18s ease-out; } }
   @keyframes sube { from { opacity: 0; transform: translate(-50%, 8px); } }
@@ -265,6 +298,7 @@
   <div id="app" hidden>
     <section class="tarjeta operario">
       <span>Operario:</span><b id="operarioTxt"></b>
+      <span class="ubic" id="ubicTxt" title="Ubicación del teléfono">📍 …</span>
       <button type="button" class="enlace" id="cambiarNombre">Cambiar</button>
     </section>
 
@@ -280,7 +314,8 @@
     <nav class="pestanas" id="pestanas" role="tablist" aria-label="Planta"></nav>
     <div class="paso">Anotá las lecturas</div>
     <section class="tarjeta panel" id="panel" aria-live="polite"></section>
-    <p class="nota">Dejá vacío lo que no se midió. Si un valor sale fuera de rango igual se guarda, pero revisalo.</p>
+    <p class="nota">Dejá vacío lo que no se midió. Si un valor sale fuera de rango igual se guarda, pero revisalo. Las fotos se suben solas apenas las tomás; los números y casillas se guardan con el botón Guardar.</p>
+    <input type="file" id="archivoFoto" accept="image/*" capture="environment" hidden>
 
     <section class="tarjeta admin" id="admin" hidden>
       <div class="panel-cab"><h2>Panel de administrador</h2><span id="adminSub">Resumen y Excel del mes</span></div>
@@ -297,6 +332,10 @@
         <div class="rejilla-wrap"><table class="rejilla" id="rejilla"></table></div>
         <div class="leyenda"><span><i class="l"></i>Completo</span><span><i class="p"></i>Incompleto</span><span><i></i>Sin datos</span><span id="operariosMes"></span></div>
         <div class="enlaces" id="enlaces"></div>
+        <h3 class="sub-admin">Ubicaciones registradas en el mes</h3>
+        <div id="mapa" hidden></div>
+        <div class="lista-ubic" id="listaUbic"></div>
+        <div class="fila"><a class="btn sec chico" href="panel.html" style="display:inline-grid;place-items:center;text-decoration:none">Abrir panel de gráficas</a></div>
         <div class="fila"><button type="button" class="enlace" id="adminSalir">Salir del modo administrador</button></div>
       </div>
     </section>
@@ -364,6 +403,9 @@
     }).finally(function () { if (t) clearTimeout(t); });
   }
   function esDeRed(e) { return !navigator.onLine || /network|failed to fetch|load failed|networkerror|lenta/i.test(mensaje(e)); }
+  // Hay internet pero Google devolvió algo que no son datos (script sin publicar, permisos, caída de Google).
+  function esDeGoogle(e) { return navigator.onLine && /network: respuesta/i.test(mensaje(e)); }
+  var MSG_GOOGLE = 'Google no respondió bien (el teléfono sí tiene internet).';
   function mensaje(e) { return (e && e.message ? e.message : String(e)).replace(/^Exception:\s*/, ''); }
 
   /* ---------- validación ---------- */
@@ -374,6 +416,7 @@
     return Number(txt);
   }
   function evaluar(p, txt) {
+    if (p.tipo === 'check') return { clase: '', msg: '' };
     var v = numero(txt);
     if (v === null) return { clase: '', msg: '' };
     if (isNaN(v)) return { clase: 'error', msg: 'Escribí solo números (ej. 6.25)' };
@@ -409,8 +452,8 @@
       return g.parametros.some(function (p) { return evaluar(p, estado.actual[g.id][p.id]).clase === 'error'; });
     });
   }
-  function llenos(g) { return g.parametros.filter(function (p) { return !p.opcional && txtDe(estado.actual[g.id][p.id]).trim() !== ''; }).length; }
-  function obligatorios(g) { return g.parametros.filter(function (p) { return !p.opcional; }).length; }
+  function llenos(g) { return g.parametros.filter(function (p) { return !p.opcional && p.tipo !== 'check' && txtDe(estado.actual[g.id][p.id]).trim() !== ''; }).length; }
+  function obligatorios(g) { return g.parametros.filter(function (p) { return !p.opcional && p.tipo !== 'check'; }).length; }
 
   /* ---------- pintar ---------- */
   function pintarFecha() {
@@ -461,6 +504,8 @@
     });
   }
 
+  var ICONO_CAM = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-2.5h6L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.6"/></svg>';
+
   function pintarPanel() {
     var g = GRUPOS.filter(function (x) { return x.id === estado.grupo; })[0];
     var panel = $('panel');
@@ -468,10 +513,28 @@
     var cab = document.createElement('div'); cab.className = 'panel-cab';
     cab.style.borderTop = '5px solid ' + g.color;
     var h = document.createElement('h2'); h.textContent = g.nombreExcel;
-    var s = document.createElement('span'); s.textContent = g.parametros.length + ' lecturas';
+    var s = document.createElement('span'); s.textContent = obligatorios(g) + ' lecturas';
     cab.appendChild(h); cab.appendChild(s); panel.appendChild(cab);
 
-    g.parametros.forEach(function (p) {
+    // Casillas (riego / dosificación de cloro) al inicio del panel
+    g.parametros.filter(function (p) { return p.tipo === 'check'; }).forEach(function (p) {
+      var lab = document.createElement('label'); lab.className = 'check';
+      var cb = document.createElement('input'); cb.type = 'checkbox'; cb.id = 'c_' + g.id + '_' + p.id;
+      cb.checked = txtDe(estado.actual[g.id][p.id]) === '1';
+      var t = document.createElement('div');
+      var b = document.createElement('b'); b.textContent = p.corto;
+      var sp = document.createElement('span'); sp.textContent = 'Marcá la casilla si se hizo hoy. Sale como ✓ en el Excel del mes.';
+      t.appendChild(b); t.appendChild(sp); lab.appendChild(cb); lab.appendChild(t);
+      function refrescar() { lab.classList.toggle('cambiado', esCambio(g, p)); }
+      cb.addEventListener('change', function () {
+        estado.actual[g.id][p.id] = cb.checked ? '1' : '';
+        refrescar(); pintarPie(); actualizarPestanas();
+      });
+      refrescar();
+      panel.appendChild(lab);
+    });
+
+    g.parametros.filter(function (p) { return p.tipo !== 'check'; }).forEach(function (p) {
       var id = 'v_' + g.id + '_' + p.id;
       var fila = document.createElement('div'); fila.className = 'campo';
       var lab = document.createElement('label'); lab.htmlFor = id; lab.textContent = p.corto;
@@ -481,9 +544,12 @@
       inp.id = id; inp.type = 'text'; inp.inputMode = 'decimal'; inp.autocomplete = 'off'; inp.enterKeyHint = 'next';
       inp.value = txtDe(estado.actual[g.id][p.id]);
       var u = document.createElement('span'); u.className = 'u'; u.textContent = p.unidad || 'pH';
+      var cam = document.createElement('button'); cam.type = 'button'; cam.className = 'cam';
+      cam.setAttribute('aria-label', 'Tomar foto de ' + p.corto); cam.innerHTML = ICONO_CAM;
       var est = document.createElement('div'); est.className = 'estado'; est.hidden = true;
+      var fp = document.createElement('div'); fp.className = 'fotos-param';
       ent.appendChild(inp); ent.appendChild(u);
-      fila.appendChild(lab); fila.appendChild(ent); fila.appendChild(ran); fila.appendChild(est);
+      fila.appendChild(lab); fila.appendChild(ent); fila.appendChild(cam); fila.appendChild(ran); fila.appendChild(est); fila.appendChild(fp);
       function refrescar() {
         var ev = evaluar(p, inp.value);
         fila.className = 'campo ' + ev.clase + (esCambio(g, p) ? ' cambiado' : '');
@@ -496,13 +562,233 @@
       inp.addEventListener('keydown', function (e) {
         if (e.key !== 'Enter') return;
         e.preventDefault();
-        var todos = panel.querySelectorAll('input');
+        var todos = panel.querySelectorAll('.entrada input');
         var i = Array.prototype.indexOf.call(todos, inp);
         if (todos[i + 1]) todos[i + 1].focus(); else inp.blur();
       });
+      cam.addEventListener('click', function () { tomarFoto(g, p.id, p.corto); });
+      pintarFotosParam(g, p, cam, fp);
       refrescar();
       panel.appendChild(fila);
     });
+
+    // Fotos de actividades del día
+    var act = document.createElement('div'); act.className = 'actividades';
+    var h3 = document.createElement('h3'); h3.textContent = 'Fotos de actividades del día';
+    var pa = document.createElement('p'); pa.textContent = 'Limpieza, riego, dosificación u otras tareas en ' + g.nombre + '. Hasta 8 fotos.';
+    var gal = document.createElement('div'); gal.className = 'galeria'; gal.id = 'galeria';
+    act.appendChild(h3); act.appendChild(pa); act.appendChild(gal);
+    panel.appendChild(act);
+    pintarGaleria(g);
+  }
+
+  /* ---------- fotos ---------- */
+  function fotosDe(gid, pid) { var f = estado.fotos[gid] || {}; return f[pid] || []; }
+  function ponerFotos(gid, pid, lista) { (estado.fotos[gid] = estado.fotos[gid] || {})[pid] = lista; }
+
+  function miniatura(item, conBorrar, alBorrar) {
+    var d = document.createElement('div'); d.className = 'mini';
+    var im = document.createElement('img'); im.src = item.url; im.alt = 'Foto'; im.loading = 'lazy';
+    im.addEventListener('error', function () { im.replaceWith(Object.assign(document.createElement('div'), { textContent: '📷', style: 'display:grid;place-items:center;height:100%;font-size:24px' })); });
+    d.appendChild(im);
+    if (item.id) d.addEventListener('click', function (e) { if (e.target.className !== 'x') window.open('https://drive.google.com/file/d/' + item.id + '/view', '_blank'); });
+    var et = document.createElement('div');
+    if (item.subiendo) { et.className = 'et'; et.textContent = 'Subiendo…'; d.appendChild(et); }
+    else if (item.pend) { et.className = 'et pend'; et.textContent = 'Sin señal'; d.appendChild(et); }
+    if (conBorrar) {
+      var x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Quitar foto');
+      x.addEventListener('click', function (e) { e.stopPropagation(); alBorrar(item); });
+      d.appendChild(x);
+    }
+    return d;
+  }
+  function pintarFotosParam(g, p, cam, fp) {
+    var l = fotosDe(g.id, p.id);
+    cam.classList.toggle('tiene', l.length > 0);
+    fp.innerHTML = '';
+    l.slice(-1).forEach(function (it) { fp.appendChild(miniatura(it, false)); });
+    fp.hidden = !l.length;
+  }
+  function pintarGaleria(g) {
+    var gal = $('galeria'); if (!gal) return;
+    gal.innerHTML = '';
+    var l = fotosDe(g.id, 'actividad');
+    l.forEach(function (it) { gal.appendChild(miniatura(it, !it.subiendo, function (item) { quitarFoto(g, item); })); });
+    if (l.length < 8) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'agregar';
+      b.innerHTML = ICONO_CAM.replace('<svg', '<svg style="width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.8"') + '<span>Agregar foto</span>';
+      b.addEventListener('click', function () { tomarFoto(g, 'actividad', 'Actividades'); });
+      gal.appendChild(b);
+    }
+  }
+  function refrescarFotos() {
+    var g = GRUPOS.filter(function (x) { return x.id === estado.grupo; })[0];
+    if (!g) return;
+    pintarPanel();
+  }
+
+  var fotoDestino = null;
+  function tomarFoto(g, pid, etiqueta) {
+    if (!leer(K.operario)) { toast('Escribí tu nombre antes de tomar fotos.', true); return; }
+    fotoDestino = { g: g, pid: pid, etiqueta: etiqueta, fecha: estado.fecha };
+    $('archivoFoto').value = '';
+    $('archivoFoto').click();
+    pedirUbicacion(); // se adelanta mientras el operario toma la foto
+  }
+  $('archivoFoto').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    var dest = fotoDestino; fotoDestino = null;
+    if (!f || !dest) return;
+    comprimir(f, dest).then(function (dataUrl) {
+      var item = { url: dataUrl, subiendo: true, tmp: Date.now() };
+      var l = dest.pid === 'actividad' ? fotosDe(dest.g.id, 'actividad').concat([item]) : [item];
+      ponerFotos(dest.g.id, dest.pid, l);
+      if (dest.fecha === estado.fecha) refrescarFotos();
+      return pedirUbicacion().then(function (pos) {
+        var paquete = { fecha: dest.fecha, grupo: dest.g.id, param: dest.pid, operario: leer(K.operario), base64: dataUrl, ubicacion: pos };
+        return subirPaquete(paquete, item);
+      });
+    }).catch(function (e) { toast(mensaje(e), true); });
+  });
+
+  function subirPaquete(paquete, item) {
+    if (!navigator.onLine) return encolarFoto(paquete, item);
+    return servidor('subirFoto', paquete).then(function (r) {
+      reemplazarItem(paquete, item, { id: r.id, url: r.url });
+      toast('✓ Foto guardada');
+    }).catch(function (e) {
+      if (esDeRed(e)) return encolarFoto(paquete, item, e);
+      quitarItem(paquete, item);
+      toast(mensaje(e), true);
+    });
+  }
+  function reemplazarItem(paquete, item, nuevo) {
+    var l = fotosDe(paquete.grupo, paquete.param).map(function (x) { return x === item ? nuevo : x; });
+    ponerFotos(paquete.grupo, paquete.param, l);
+    if (paquete.fecha === estado.fecha) refrescarFotos();
+  }
+  function quitarItem(paquete, item) {
+    ponerFotos(paquete.grupo, paquete.param, fotosDe(paquete.grupo, paquete.param).filter(function (x) { return x !== item; }));
+    if (paquete.fecha === estado.fecha) refrescarFotos();
+  }
+  function encolarFoto(paquete, item, e) {
+    return idbAgregar(paquete).then(function (k) {
+      reemplazarItem(paquete, item, { url: paquete.base64, pend: true, k: k });
+      toast(esDeGoogle(e) ? MSG_GOOGLE + ' La foto quedó en el teléfono y se reintentará sola.' : 'Sin señal: la foto quedó en el teléfono y se subirá sola.', esDeGoogle(e));
+      contarFotosPend();
+    });
+  }
+  function quitarFoto(g, item) {
+    if (item.pend) {
+      idbBorrar(item.k).then(function () {
+        ponerFotos(g.id, 'actividad', fotosDe(g.id, 'actividad').filter(function (x) { return x !== item; }));
+        refrescarFotos(); pintarPie();
+      });
+      return;
+    }
+    if (!item.id) return;
+    servidor('borrarFoto', item.id).then(function () {
+      ponerFotos(g.id, 'actividad', fotosDe(g.id, 'actividad').filter(function (x) { return x !== item; }));
+      refrescarFotos(); toast('Foto quitada');
+    }).catch(function (e) { toast(esDeRed(e) ? 'Sin señal: no se puede quitar la foto ahora.' : mensaje(e), true); });
+  }
+
+  // Achica la foto (máx. 1280 px) y le pone fecha, hora, etapa y operario abajo.
+  function comprimir(file, dest) {
+    return new Promise(function (ok, mal) {
+      var url = URL.createObjectURL(file);
+      var im = new Image();
+      im.onload = function () {
+        var M = 1280, w = im.naturalWidth, h = im.naturalHeight, k = Math.min(1, M / Math.max(w, h));
+        var c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
+        var x = c.getContext('2d'); x.drawImage(im, 0, 0, c.width, c.height);
+        var ahora = new Date(), fs = Math.max(14, Math.round(c.width / 45));
+        var d = dest.fecha.split('-');
+        var txt = d[2] + '/' + d[1] + '/' + d[0] + ' ' + ('0' + ahora.getHours()).slice(-2) + ':' + ('0' + ahora.getMinutes()).slice(-2) + ' · ' + dest.g.nombre + ' · ' + dest.etiqueta + ' · ' + (leer(K.operario) || '');
+        x.fillStyle = 'rgba(0,0,0,.55)'; x.fillRect(0, c.height - fs * 1.9, c.width, fs * 1.9);
+        x.fillStyle = '#fff'; x.font = '600 ' + fs + 'px system-ui, Arial, sans-serif'; x.textBaseline = 'middle';
+        x.fillText(txt, fs * .6, c.height - fs * .95, c.width - fs * 1.2);
+        URL.revokeObjectURL(url);
+        ok(c.toDataURL('image/jpeg', 0.72));
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); mal(new Error('No se pudo leer la foto.')); };
+      im.src = url;
+    });
+  }
+
+  /* ---------- fotos en espera (IndexedDB) ---------- */
+  var memFotos = [], idbP = null;
+  function idb() {
+    if (idbP) return idbP;
+    idbP = new Promise(function (ok) {
+      try {
+        var r = indexedDB.open('ptar', 1);
+        r.onupgradeneeded = function () { r.result.createObjectStore('fotos', { keyPath: 'k', autoIncrement: true }); };
+        r.onsuccess = function () { ok(r.result); };
+        r.onerror = function () { ok(null); };
+      } catch (e) { ok(null); }
+    });
+    return idbP;
+  }
+  function idbTx(modo, fn) {
+    return idb().then(function (db) {
+      if (!db) return fn(null);
+      return new Promise(function (ok, mal) {
+        var tx = db.transaction('fotos', modo), st = tx.objectStore('fotos'), res;
+        var r = fn(st); if (r) r.onsuccess = function () { res = r.result; };
+        tx.oncomplete = function () { ok(res); }; tx.onerror = function () { mal(tx.error); };
+      });
+    });
+  }
+  function idbAgregar(obj) { return idbTx('readwrite', function (st) { if (!st) { obj.k = 'm' + Date.now(); memFotos.push(obj); return null; } return st.add(obj); }).then(function (k) { return k || obj.k; }); }
+  function idbTodos() { return idbTx('readonly', function (st) { return st ? st.getAll() : null; }).then(function (r) { return r || memFotos.slice(); }); }
+  function idbBorrar(k) { return idbTx('readwrite', function (st) { if (!st) { memFotos = memFotos.filter(function (x) { return x.k !== k; }); return null; } return st.delete(k); }); }
+  var nFotosPend = 0;
+  function contarFotosPend() { return idbTodos().then(function (l) { nFotosPend = l.length; pintarPie(); return l; }); }
+  var subiendoPend = false;
+  function enviarFotosPendientes() {
+    if (subiendoPend || !navigator.onLine) return Promise.resolve();
+    subiendoPend = true;
+    return idbTodos().then(function (l) {
+      var cadena = Promise.resolve(), subidas = 0;
+      l.forEach(function (p) {
+        cadena = cadena.then(function () {
+          var k = p.k; var paquete = Object.assign({}, p); delete paquete.k;
+          return servidor('subirFoto', paquete).then(function (r) {
+            subidas++;
+            return idbBorrar(k).then(function () {
+              var lista = fotosDe(p.grupo, p.param).map(function (x) { return x.k === k ? { id: r.id, url: r.url } : x; });
+              ponerFotos(p.grupo, p.param, lista);
+            });
+          }).catch(function (e) { if (!esDeRed(e)) return idbBorrar(k); throw e; });
+        });
+      });
+      return cadena.then(function () { if (subidas) { toast('✓ Se subieron ' + subidas + (subidas === 1 ? ' foto' : ' fotos') + ' que estaban en espera.'); refrescarFotos(); } });
+    }).catch(function () {}).then(function () { subiendoPend = false; contarFotosPend(); });
+  }
+
+  /* ---------- ubicación ---------- */
+  var ubic = { estado: 'pendiente', pos: null, t: 0, pedido: null };
+  function pintarUbic() {
+    var el = $('ubicTxt'); if (!el) return;
+    var m = { ok: ['📍 Ubicación activa', 'ubic ok'], denegado: ['📍 Sin permiso', 'ubic no'], no: ['📍 Sin GPS', 'ubic no'], pendiente: ['📍 …', 'ubic'] }[ubic.estado];
+    el.textContent = m[0]; el.className = m[1];
+  }
+  function pedirUbicacion() {
+    if (ubic.pos && Date.now() - ubic.t < 120000) return Promise.resolve(ubic.pos);
+    if (ubic.pedido) return ubic.pedido;
+    if (!navigator.geolocation) { ubic.estado = 'no'; pintarUbic(); return Promise.resolve(null); }
+    ubic.pedido = new Promise(function (ok) {
+      navigator.geolocation.getCurrentPosition(function (p) {
+        ubic.pos = { lat: +p.coords.latitude.toFixed(6), lng: +p.coords.longitude.toFixed(6), precision: Math.round(p.coords.accuracy) };
+        ubic.t = Date.now(); ubic.estado = 'ok'; pintarUbic(); ok(ubic.pos);
+      }, function (e) {
+        ubic.estado = e && e.code === 1 ? 'denegado' : 'no'; pintarUbic(); ok(ubic.pos);
+      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 });
+      // Si el operario no responde el permiso, no se traba el guardado.
+      setTimeout(function () { ok(ubic.pos); }, 12000);
+    }).then(function (r) { ubic.pedido = null; return r; });
+    return ubic.pedido;
   }
 
   function pintarPie() {
@@ -511,6 +797,7 @@
     else if (c.n) txt = '<b>' + c.n + (c.n === 1 ? ' dato' : ' datos') + '</b> sin guardar';
     else txt = estado.ultimo ? 'Guardado a las ' + estado.ultimo : 'Todo guardado';
     if (pend) txt += '<br><b>' + pend + '</b> en espera de señal';
+    if (nFotosPend) txt += '<br><b>' + nFotosPend + (nFotosPend === 1 ? ' foto' : ' fotos') + '</b> por subir';
     $('pieTxt').innerHTML = txt;
     $('guardar').disabled = !c.n || hayErrores() || estado.guardando;
     $('guardar').textContent = estado.guardando ? 'Guardando…' : 'Guardar';
@@ -533,11 +820,17 @@
     pintarFecha();
     $('app').classList.add('cargando');
     $('pieTxt').textContent = 'Cargando datos del día…';
-    return servidor('obtenerDia', fecha).then(function (datos) {
-      estado.original = copiar(datos);
+    estado.fotos = {};
+    return servidor('obtenerDia2', fecha).catch(function (e) {
+      // Compatibilidad: si el motor de Google todavía es la versión anterior.
+      if (/no permitida/i.test(mensaje(e))) return servidor('obtenerDia', fecha).then(function (v) { return { valores: v, fotos: {} }; });
+      throw e;
+    }).then(function (datos) {
+      estado.original = copiar(datos.valores);
+      estado.fotos = datos.fotos || {};
     }).catch(function (e) {
       estado.original = vacio();
-      toast(esDeRed(e) ? 'Sin señal: podés anotar igual y se enviará cuando vuelva.' : 'No se pudieron cargar los datos: ' + mensaje(e), true);
+      toast(esDeGoogle(e) ? MSG_GOOGLE + ' Podés anotar igual; se enviará cuando responda.' : esDeRed(e) ? 'Sin señal: podés anotar igual y se enviará cuando vuelva.' : 'No se pudieron cargar los datos: ' + mensaje(e), true);
     }).then(function () {
       // Lo que está en espera de señal para este día se muestra como ya anotado.
       pendientes().forEach(function (p) {
@@ -545,6 +838,15 @@
         for (var g in p.valores) for (var k in p.valores[g]) if (estado.original[g]) estado.original[g][k] = p.valores[g][k];
       });
       estado.actual = copiar(estado.original);
+      return idbTodos().then(function (l) {
+        l.forEach(function (p) {
+          if (p.fecha !== fecha) return;
+          var it = { url: p.base64, pend: true, k: p.k };
+          ponerFotos(p.grupo, p.param, p.param === 'actividad' ? fotosDe(p.grupo, 'actividad').concat([it]) : [it]);
+        });
+        nFotosPend = l.length;
+      }).catch(function () {});
+    }).then(function () {
       $('app').classList.remove('cargando');
       pintarPestanas(); pintarPanel(); pintarPie();
     });
@@ -573,15 +875,19 @@
     if (!c.n || hayErrores()) return Promise.resolve(false);
     var paquete = { fecha: estado.fecha, operario: op, valores: c.valores };
     estado.guardando = true; pintarPie();
-    if (!navigator.onLine) { encolar(paquete); return Promise.resolve(true); }
-    return servidor('guardarDia', paquete).then(function (r) {
+    return pedirUbicacion().then(function (pos) {
+      paquete.ubicacion = pos;
+      if (!navigator.onLine) { encolar(paquete); return true; }
+      return servidor('guardarDia', paquete);
+    }).then(function (r) {
+      if (r === true) return true;
       aplicarGuardado(paquete);
       estado.ultimo = r.hora;
       var n = r.guardados + r.borrados;
       toast('✓ Guardado · ' + n + (n === 1 ? ' dato' : ' datos'));
       return true;
     }).catch(function (e) {
-      if (esDeRed(e)) { encolar(paquete); return true; }
+      if (esDeRed(e)) { encolar(paquete, e); return true; }
       toast(mensaje(e), true);
       return false;
     }).then(function (ok) { estado.guardando = false; pintarPie(); return ok; });
@@ -595,11 +901,11 @@
     estado.pedirDecision = false;
     pintarPestanas(); pintarPanel();
   }
-  function encolar(paquete) {
+  function encolar(paquete, e) {
     var l = pendientes(); l.push(paquete); guardarPendientes(l);
     aplicarGuardado(paquete);
     estado.guardando = false;
-    toast('Sin señal: quedó guardado en el teléfono y se enviará solo cuando haya internet.');
+    toast(esDeGoogle(e) ? MSG_GOOGLE + ' Quedó guardado en el teléfono y se reintentará solo.' : 'Sin señal: quedó guardado en el teléfono y se enviará solo cuando haya internet.', esDeGoogle(e));
     pintarPie();
   }
   var enviando = false;
@@ -692,12 +998,49 @@
         t.appendChild(tr);
       });
       $('operariosMes').textContent = r.operarios.length ? 'Registraron: ' + r.operarios.join(', ') : '';
+      cargarUbicaciones(anio, mes);
       return true;
     }).catch(function (e) {
       if (/clave/i.test(mensaje(e))) { borrar(K.clave); $('adminLogin').hidden = false; $('adminCuerpo').hidden = true; }
       toast(mensaje(e), true);
       return false;
     });
+  }
+  var mapa = null, capaPuntos = null;
+  function cargarLeaflet() {
+    if (window.L) return Promise.resolve();
+    return new Promise(function (ok, mal) {
+      var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'leaflet.css'; document.head.appendChild(css);
+      var js = document.createElement('script'); js.src = 'leaflet.js';
+      js.onload = ok; js.onerror = function () { mal(new Error('No se pudo cargar el mapa.')); }; document.head.appendChild(js);
+    });
+  }
+  function cargarUbicaciones(anio, mes) {
+    var lista = $('listaUbic');
+    lista.textContent = 'Cargando ubicaciones…';
+    servidor('ubicacionesMes', anio, mes, estado.clave).then(function (l) {
+      lista.innerHTML = '';
+      if (!l.length) { lista.textContent = 'No hay ubicaciones registradas en este mes.'; $('mapa').hidden = true; return; }
+      l.slice().reverse().forEach(function (u) {
+        var d = document.createElement('div');
+        var t = document.createElement('span'); t.textContent = u.fecha.split('-').reverse().join('/') + ' ' + u.hora + ' · ' + u.operario + ' · ' + u.accion;
+        var a = document.createElement('a'); a.href = 'https://maps.google.com/?q=' + u.lat + ',' + u.lng; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Ver mapa';
+        d.appendChild(t); d.appendChild(a); lista.appendChild(d);
+      });
+      return cargarLeaflet().then(function () {
+        $('mapa').hidden = false;
+        if (!mapa) {
+          mapa = L.map('mapa');
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(mapa);
+        }
+        if (capaPuntos) capaPuntos.remove();
+        capaPuntos = L.featureGroup(l.map(function (u) {
+          return L.circleMarker([u.lat, u.lng], { radius: 7, color: '#fff', weight: 2, fillColor: '#0070bc', fillOpacity: .9 })
+            .bindPopup('<b>' + u.operario.replace(/</g, '&lt;') + '</b><br>' + u.fecha.split('-').reverse().join('/') + ' ' + u.hora + '<br>' + u.accion.replace(/</g, '&lt;') + (u.precision ? '<br>Precisión: ±' + u.precision + ' m' : ''));
+        })).addTo(mapa);
+        setTimeout(function () { mapa.invalidateSize(); mapa.fitBounds(capaPuntos.getBounds().pad(0.3), { maxZoom: 17 }); }, 50);
+      });
+    }).catch(function (e) { lista.textContent = esDeRed(e) ? 'Sin señal para cargar ubicaciones.' : mensaje(e); });
   }
   $('abrirAdmin').addEventListener('click', abrirAdmin);
   $('adminEntrar').addEventListener('click', function () { var c = $('adminClave').value.trim(); if (c) entrarAdmin(c); });
@@ -728,6 +1071,7 @@
     $('bienvenida').hidden = true;
     $('app').hidden = false; $('banda').hidden = false; $('pie').hidden = false;
     $('operarioTxt').textContent = leer(K.operario) || '';
+    pedirUbicacion();
   }
   $('empezar').addEventListener('click', function () {
     var n = $('nombreNuevo').value.trim().replace(/\s+/g, ' ');
@@ -762,7 +1106,7 @@
       if (listo) return; listo = true;
       aplicarConfig(cfg);
       if (!leer(K.operario)) pedirNombre(); else mostrarApp();
-      cargarDia(estado.fecha).then(enviarPendientes);
+      cargarDia(estado.fecha).then(function () { enviarPendientes(); enviarFotosPendientes(); });
     }
     if (guardada && guardada.grupos) iniciar(guardada);
     servidor('config').then(function (cfg) {
@@ -771,6 +1115,8 @@
       else if (cfg.hoy && cfg.hoy !== estado.hoy) { estado.hoy = cfg.hoy; pintarFecha(); }
     }).catch(function (e) {
       if (listo) return;
+      if (esDeGoogle(e)) return mostrarError('Google no respondió',
+        'El teléfono tiene internet, pero el servidor de Google no devolvió datos. Avisale al administrador: puede faltar publicar una versión nueva del script o darle permisos.');
       mostrarError(esDeRed(e) ? 'Sin conexión' : 'No se pudo conectar',
         esDeRed(e) ? 'La primera vez que se abre la app necesita internet. Buscá señal y tocá Reintentar.' : mensaje(e));
     });
@@ -789,14 +1135,14 @@
     if (f) cargarDia(f); else { pintarPestanas(); pintarPanel(); pintarPie(); }
   });
   $('reintentar').addEventListener('click', arrancar);
-  window.addEventListener('online', function () { pintarConexion(); enviarPendientes(); });
+  window.addEventListener('online', function () { pintarConexion(); enviarPendientes(); enviarFotosPendientes(); });
   window.addEventListener('offline', pintarConexion);
   // Al volver a la app después de un rato: si cambió el día, pasa a hoy (si no hay nada sin guardar).
   document.addEventListener('visibilitychange', function () {
     if (document.hidden || !GRUPOS.length) return;
     var h = hoyLocal();
     if (h > estado.hoy) { estado.hoy = h; if (!cambios().n) cargarDia(h); else pintarFecha(); }
-    enviarPendientes();
+    enviarPendientes(); enviarFotosPendientes();
   });
 
   if ('serviceWorker' in navigator) {

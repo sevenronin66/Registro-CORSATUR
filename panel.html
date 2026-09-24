@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Panel PTAR</title>
+<meta name="theme-color" content="#0B3D63">
+<meta name="description" content="Gráficas de los parámetros de la PTAR — HIDROPUR (solo lectura)">
+<link rel="manifest" href="manifest-panel.webmanifest">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-panel-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Panel PTAR">
+<style>
+  :root {
+    --tinta: #13212f;
+    --tinta-2: #51606f;
+    --tinta-3: #7b8896;
+    --fondo: #f1f4f8;
+    --papel: #ffffff;
+    --linea: #dbe3ec;
+    --marca: #0070bc;
+    --marca-osc: #0b3d63;
+    --banda: rgba(29, 122, 70, .09);
+    --banda-borde: rgba(29, 122, 70, .35);
+    --fuera: #c0392b;
+    --ok: #1d7a46;
+    --ok-fondo: #e3f3ea;
+    --aviso: #9a5b00;
+    --aviso-fondo: #fff1d6;
+    color-scheme: light;
+  }
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; }
+  body { font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: var(--fondo); color: var(--tinta); -webkit-text-size-adjust: 100%; min-height: 100vh; }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--marca); outline-offset: 2px; }
+
+  .cabecera { background: var(--marca-osc); color: #fff; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px; }
+  .cabecera-in { max-width: 1180px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+  .cabecera .logo { width: 42px; height: 42px; border-radius: 10px; background: #fff; display: grid; place-items: center; flex: none; }
+  .cabecera .logo img { width: 32px; height: 29px; }
+  .titulo { flex: 1; min-width: 0; line-height: 1.2; }
+  .titulo b { display: block; font-size: 18px; }
+  .titulo span { font-size: 12.5px; opacity: .8; }
+  .actualizado { font-size: 12px; opacity: .85; text-align: right; }
+  .actualizado button { margin-top: 4px; border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff; border-radius: 99px; padding: 4px 12px; font-size: 12.5px; }
+
+  main { max-width: 1180px; margin: 0 auto; padding: 16px 16px 40px; }
+
+  .login { max-width: 420px; margin: 40px auto; background: var(--papel); border: 1px solid var(--linea); border-radius: 16px; padding: 24px; text-align: center; }
+  .login img { width: 64px; height: 58px; }
+  .login h1 { font-size: 20px; margin: 10px 0 6px; }
+  .login p { color: var(--tinta-2); margin: 0 0 16px; font-size: 14.5px; }
+  .login input { width: 100%; height: 52px; border: 1.5px solid var(--linea); border-radius: 12px; padding: 0 14px; font-size: 17px; text-align: center; margin-bottom: 12px; background: var(--fondo); }
+  .login input:focus { outline: none; border-color: var(--marca); background: var(--papel); }
+  .btn { height: 50px; width: 100%; border: 0; border-radius: 12px; background: var(--marca); color: #fff; font-weight: 700; font-size: 16px; }
+  .btn:disabled { opacity: .5; }
+  .error { color: var(--fuera); font-size: 14px; margin-top: 10px; }
+
+  /* Barra de controles */
+  .controles { position: sticky; top: 0; z-index: 5; background: var(--fondo); padding: 10px 0 12px; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; border-bottom: 1px solid var(--linea); margin-bottom: 16px; }
+  .grupo-ctrl { display: flex; flex-direction: column; gap: 4px; }
+  .grupo-ctrl > span { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--tinta-3); }
+  .seg { display: inline-flex; background: var(--papel); border: 1px solid var(--linea); border-radius: 12px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+  .seg button { border: 0; background: transparent; border-radius: 9px; padding: 8px 14px; font-weight: 600; font-size: 14px; color: var(--tinta-2); min-height: 38px; }
+  .seg button[aria-pressed="true"] { background: var(--marca-osc); color: #fff; }
+  .rango-txt { font-size: 13px; color: var(--tinta-2); margin-left: auto; }
+
+  /* Secciones por etapa */
+  .etapa { margin-bottom: 28px; }
+  .etapa-cab { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; padding-left: 12px; border-left: 6px solid var(--color); }
+  .etapa-cab h2 { margin: 0; font-size: 19px; }
+  .etapa-cab .sub { font-size: 13px; color: var(--tinta-2); }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+  .chip { font-size: 13px; background: var(--papel); border: 1px solid var(--linea); border-radius: 99px; padding: 5px 12px; color: var(--tinta-2); }
+  .chip b { color: var(--tinta); font-variant-numeric: tabular-nums; }
+
+  .rejilla { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  @media (min-width: 860px) { .rejilla { grid-template-columns: 1fr 1fr; } }
+
+  .tarjeta { background: var(--papel); border: 1px solid var(--linea); border-radius: 14px; padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .t-cab { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .t-cab h3 { margin: 0; font-size: 15.5px; }
+  .t-cab .r { font-size: 12px; color: var(--tinta-3); white-space: nowrap; }
+  .lienzo { position: relative; height: 190px; }
+  .vacio { position: absolute; inset: 0; display: grid; place-items: center; color: var(--tinta-3); font-size: 13.5px; background: repeating-linear-gradient(135deg, transparent 0 10px, rgba(0,0,0,.025) 10px 20px); border-radius: 8px; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .stat { background: var(--fondo); border-radius: 10px; padding: 7px 8px; min-width: 0; }
+  .stat span { display: block; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--tinta-3); }
+  .stat b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; line-height: 1.25; }
+  .stat small { display: block; font-size: 11px; color: var(--tinta-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat.fuera b { color: var(--fuera); }
+  .leyenda { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--tinta-2); }
+  .leyenda i { display: inline-block; vertical-align: -2px; margin-right: 5px; }
+  .leyenda .l { width: 18px; height: 3px; border-radius: 2px; vertical-align: 3px; }
+  .leyenda .b { width: 14px; height: 12px; background: var(--banda); border: 1px dashed var(--banda-borde); }
+  .leyenda .p { width: 9px; height: 9px; border-radius: 50%; background: var(--fuera); }
+  @media (max-width: 420px) { .stats { grid-template-columns: repeat(2, 1fr); } .rango-txt { margin-left: 0; } }
+
+  .aviso { background: var(--aviso-fondo); color: var(--aviso); border-radius: 12px; padding: 10px 14px; font-size: 14px; margin-bottom: 14px; }
+  .pie { text-align: center; font-size: 12.5px; color: var(--tinta-3); margin-top: 10px; }
+  .pie button { border: 0; background: none; color: var(--marca); font-weight: 600; font-size: 13px; }
+</style>
+</head>
+<body>
+<header class="cabecera">
+  <div class="cabecera-in">
+    <div class="logo"><img src="marca.svg" alt=""></div>
+    <div class="titulo"><b>Panel PTAR</b><span>HIDROPUR · Gráficas de parámetros · solo lectura</span></div>
+    <div class="actualizado" id="actualizado" hidden><span id="actTxt"></span><br><button type="button" id="refrescar">Actualizar</button></div>
+  </div>
+</header>
+
+<main>
+  <section class="login" id="login" hidden>
+    <img src="marca.svg" alt="">
+    <h1>Panel de gráficas</h1>
+    <p>Escribí la clave del panel. Queda guardada en este dispositivo.</p>
+    <input type="password" id="clave" placeholder="Clave del panel" aria-label="Clave del panel" autocomplete="current-password">
+    <button type="button" class="btn" id="entrar">Entrar</button>
+    <div class="error" id="loginError" hidden></div>
+  </section>
+
+  <div id="tablero" hidden>
+    <div class="controles">
+      <div class="grupo-ctrl"><span>Periodo</span>
+        <div class="seg" id="segDias" role="group" aria-label="Periodo">
+          <button type="button" data-d="30" aria-pressed="true">30 días</button>
+          <button type="button" data-d="60" aria-pressed="false">60 días</button>
+          <button type="button" data-d="90" aria-pressed="false">90 días</button>
+        </div>
+      </div>
+      <div class="grupo-ctrl"><span>Etapa</span>
+        <div class="seg" id="segEtapa" role="group" aria-label="Etapa"></div>
+      </div>
+      <div class="rango-txt" id="rangoTxt"></div>
+    </div>
+    <div class="aviso" id="avisoOffline" hidden></div>
+    <div id="contenido"></div>
+    <p class="pie">Los días sin registro aparecen como cortes en la línea. La franja verde es el rango del contrato.<br>
+      <button type="button" id="salir">Cerrar sesión en este dispositivo</button></p>
+  </div>
+</main>
+
+<script src="config.js"></script>
+<script src="chart.umd.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var URL_API = (window.PTAR_URL || '').trim();
+  var K = { clave: 'ptar_vista', datos: 'ptar_panel_datos', dias: 'ptar_panel_dias', etapa: 'ptar_panel_etapa' };
+  function leer(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function escribir(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function borrar(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+  var estado = { dias: Number(leer(K.dias)) || 30, etapa: leer(K.etapa) || 'todas', datos: null, graficos: [] };
+  if ([30, 60, 90].indexOf(estado.dias) < 0) estado.dias = 30;
+
+  function servidor(fn) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return fetch(URL_API, { method: 'POST', body: JSON.stringify({ fn: fn, args: args }), redirect: 'follow' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('network');
+        return r.json().catch(function () { throw new Error('Google no respondió bien (hay internet, pero el script no devolvió datos). Avisale al administrador.'); });
+      })
+      .then(function (j) {
+        if (!j.ok) throw new Error(/no permitida/i.test(j.error || '') ? 'El script de Google todavía es la versión anterior: hay que publicar una versión nueva (Implementar → Gestionar implementaciones).' : (j.error || 'Error'));
+        return j.data;
+      });
+  }
+  function mensaje(e) { return (e && e.message ? e.message : String(e)).replace(/^Exception:\s*/, ''); }
+  function esDeRed(e) { return !navigator.onLine || /network|failed to fetch|load failed/i.test(mensaje(e)); }
+
+  /* ---------- fechas ---------- */
+  function sumar(iso, n) { var d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function corta(iso) { return iso.slice(8, 10) + '/' + iso.slice(5, 7); }
+  function larga(iso) { return iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4); }
+  function diasVentana() {
+    var fin = estado.datos.hoy, out = [];
+    for (var i = estado.dias - 1; i >= 0; i--) out.push(sumar(fin, -i));
+    return out;
+  }
+  function fmt(v, dec) { return v == null ? '—' : v.toFixed(dec); }
+  function decimales(p) { return /ph/i.test(p.id) ? 2 : (p.unidad === 'ml/L' || p.unidad === 'h' ? 0 : (p.unidad === 'ppm' && p.min != null && p.min < 1 ? 2 : 1)); }
+
+  /* ---------- franja del rango permitido ---------- */
+  var pluginBanda = {
+    id: 'banda',
+    beforeDatasetsDraw: function (ch, args, o) {
+      if (o.min == null && o.max == null) return;
+      var y = ch.scales.y, a = ch.chartArea, ctx = ch.ctx;
+      var top = o.max != null ? y.getPixelForValue(o.max) : a.top;
+      var bot = o.min != null ? y.getPixelForValue(o.min) : a.bottom;
+      top = Math.max(a.top, top); bot = Math.min(a.bottom, bot);
+      if (bot <= top) return;
+      ctx.save();
+      ctx.fillStyle = 'rgba(29,122,70,.09)'; ctx.fillRect(a.left, top, a.right - a.left, bot - top);
+      ctx.strokeStyle = 'rgba(29,122,70,.45)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+      [o.max != null ? top : null, o.min != null ? bot : null].forEach(function (py) {
+        if (py == null) return; ctx.beginPath(); ctx.moveTo(a.left, py); ctx.lineTo(a.right, py); ctx.stroke();
+      });
+      ctx.restore();
+    }
+  };
+
+  /* ---------- pintar ---------- */
+  function pintarSegmentos() {
+    Array.prototype.forEach.call($('segDias').children, function (b) { b.setAttribute('aria-pressed', String(Number(b.dataset.d) === estado.dias)); });
+    var seg = $('segEtapa');
+    if (!seg.children.length) {
+      [{ id: 'todas', nombre: 'Todas' }].concat(estado.datos.grupos).forEach(function (g) {
+        var b = document.createElement('button'); b.type = 'button'; b.dataset.e = g.id; b.textContent = g.nombre;
+        b.addEventListener('click', function () { estado.etapa = g.id; escribir(K.etapa, g.id); pintarTodo(); });
+        seg.appendChild(b);
+      });
+    }
+    Array.prototype.forEach.call(seg.children, function (b) { b.setAttribute('aria-pressed', String(b.dataset.e === estado.etapa)); });
+  }
+
+  function indice() {
+    var ix = {};
+    estado.datos.filas.forEach(function (f) { ix[f[0] + '|' + f[1] + '|' + f[2]] = f[3]; });
+    return ix;
+  }
+
+  function pintarTodo() {
+    estado.graficos.forEach(function (c) { c.destroy(); });
+    estado.graficos = [];
+    pintarSegmentos();
+    var dias = diasVentana(), ix = indice();
+    $('rangoTxt').textContent = 'Del ' + larga(dias[0]) + ' al ' + larga(dias[dias.length - 1]);
+    var cont = $('contenido'); cont.innerHTML = '';
+    estado.datos.grupos.forEach(function (g) {
+      if (estado.etapa !== 'todas' && estado.etapa !== g.id) return;
+      var sec = document.createElement('section'); sec.className = 'etapa';
+      var cab = document.createElement('div'); cab.className = 'etapa-cab'; cab.style.setProperty('--color', g.color);
+      var h = document.createElement('h2'); h.textContent = g.nombre;
+      var sub = document.createElement('span'); sub.className = 'sub'; sub.textContent = g.nombreExcel;
+      cab.appendChild(h); cab.appendChild(sub); sec.appendChild(cab);
+
+      // Resumen de días con registro y casillas
+      var numericos = g.parametros.filter(function (p) { return p.tipo !== 'check'; });
+      var diasConDato = dias.filter(function (d) { return numericos.some(function (p) { return ix[d + '|' + g.id + '|' + p.id] != null; }); }).length;
+      var chips = document.createElement('div'); chips.className = 'chips';
+      function chip(txt, num) { var c = document.createElement('span'); c.className = 'chip'; c.innerHTML = ''; c.appendChild(document.createTextNode(txt + ' ')); var b = document.createElement('b'); b.textContent = num; c.appendChild(b); chips.appendChild(c); }
+      chip('Días con lecturas:', diasConDato + ' de ' + dias.length);
+      g.parametros.filter(function (p) { return p.tipo === 'check'; }).forEach(function (p) {
+        var n = dias.filter(function (d) { return Number(ix[d + '|' + g.id + '|' + p.id]) === 1; }).length;
+        chip(p.corto.replace(/^Se /, '').replace(/^./, function (c) { return c.toUpperCase(); }) + ':', n + (n === 1 ? ' día' : ' días'));
+      });
+      sec.appendChild(chips);
+
+      var rej = document.createElement('div'); rej.className = 'rejilla';
+      numericos.forEach(function (p) {
+        var serie = dias.map(function (d) { var v = ix[d + '|' + g.id + '|' + p.id]; return v == null || isNaN(v) ? null : Number(v); });
+        var hay = serie.filter(function (v) { return v != null; });
+        if (p.opcional && !hay.length) return; // p. ej. horómetro sin lecturas
+        rej.appendChild(tarjeta(g, p, dias, serie));
+      });
+      sec.appendChild(rej);
+      cont.appendChild(sec);
+    });
+  }
+
+  function fuera(p, v) { return v != null && ((p.min != null && v < p.min) || (p.max != null && v > p.max)); }
+
+  function tarjeta(g, p, dias, serie) {
+    var dec = decimales(p), u = p.unidad ? ' ' + p.unidad : '';
+    var t = document.createElement('article'); t.className = 'tarjeta';
+    var cab = document.createElement('div'); cab.className = 't-cab';
+    var h = document.createElement('h3'); h.textContent = p.corto.replace(' (opcional)', '') + (p.unidad ? ' (' + p.unidad + ')' : '');
+    var r = document.createElement('span'); r.className = 'r'; r.textContent = p.rango && p.rango !== 'N/A' ? 'Rango: ' + p.rango : 'Sin rango';
+    cab.appendChild(h); cab.appendChild(r); t.appendChild(cab);
+
+    var vals = [], fueraN = 0, iMax = -1, iMin = -1;
+    serie.forEach(function (v, i) {
+      if (v == null) return;
+      vals.push(v);
+      if (iMax < 0 || v > serie[iMax]) iMax = i;
+      if (iMin < 0 || v < serie[iMin]) iMin = i;
+      if (fuera(p, v)) fueraN++;
+    });
+    var prom = vals.length ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : null;
+
+    var lz = document.createElement('div'); lz.className = 'lienzo';
+    var cv = document.createElement('canvas');
+    cv.setAttribute('role', 'img');
+    cv.setAttribute('aria-label', g.nombre + ', ' + p.corto + ': ' + vals.length + ' lecturas en ' + dias.length + ' días. Máximo ' + fmt(vals.length ? serie[iMax] : null, dec) + ', mínimo ' + fmt(vals.length ? serie[iMin] : null, dec) + ', promedio ' + fmt(prom, dec) + '.');
+    lz.appendChild(cv); t.appendChild(lz);
+    if (!vals.length) {
+      var v = document.createElement('div'); v.className = 'vacio'; v.textContent = 'Sin lecturas en este periodo'; lz.appendChild(v);
+    }
+
+    var stats = document.createElement('div'); stats.className = 'stats';
+    function stat(tit, val, pie, cls) {
+      var s = document.createElement('div'); s.className = 'stat' + (cls ? ' ' + cls : '');
+      var a = document.createElement('span'); a.textContent = tit;
+      var b = document.createElement('b'); b.textContent = val;
+      var c = document.createElement('small'); c.textContent = pie || ' ';
+      s.appendChild(a); s.appendChild(b); s.appendChild(c); stats.appendChild(s);
+    }
+    stat('Máximo', fmt(vals.length ? serie[iMax] : null, dec), vals.length ? corta(dias[iMax]) : '', vals.length && fuera(p, serie[iMax]) ? 'fuera' : '');
+    stat('Mínimo', fmt(vals.length ? serie[iMin] : null, dec), vals.length ? corta(dias[iMin]) : '', vals.length && fuera(p, serie[iMin]) ? 'fuera' : '');
+    stat('Promedio', fmt(prom, dec), p.unidad || '', prom != null && fuera(p, prom) ? 'fuera' : '');
+    stat('Fuera de rango', (p.min == null && p.max == null) ? '—' : String(fueraN), vals.length + ' de ' + dias.length + ' días', fueraN ? 'fuera' : '');
+    t.appendChild(stats);
+
+    if (vals.length) {
+      var colorLinea = g.color;
+      var ch = new Chart(cv, {
+        type: 'line',
+        data: {
+          labels: dias.map(corta),
+          datasets: [{
+            data: serie, borderColor: colorLinea, backgroundColor: colorLinea, borderWidth: 2, spanGaps: false, tension: 0,
+            pointRadius: serie.map(function (x) { return x == null ? 0 : (fuera(p, x) ? 4.5 : 3); }),
+            pointHoverRadius: 6,
+            pointBackgroundColor: serie.map(function (x) { return fuera(p, x) ? '#c0392b' : colorLinea; }),
+            pointBorderColor: '#fff', pointBorderWidth: 1.5
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          interaction: { mode: 'index', intersect: false },
+          layout: { padding: { top: 4, right: 4 } },
+          plugins: {
+            legend: { display: false },
+            banda: { min: p.min, max: p.max },
+            tooltip: {
+              displayColors: false, backgroundColor: '#13212f', padding: 10,
+              callbacks: {
+                title: function (it) { return larga(dias[it[0].dataIndex]); },
+                label: function (it) { return it.parsed.y == null ? 'Sin registro' : it.parsed.y.toFixed(dec) + u + (fuera(p, it.parsed.y) ? '  · fuera de rango' : ''); }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, border: { color: '#dbe3ec' }, ticks: { color: '#7b8896', font: { size: 10.5 }, maxRotation: 0, autoSkip: true, maxTicksLimit: estado.dias === 30 ? 8 : 10 } },
+            y: {
+              grid: { color: '#eef2f6' }, border: { display: false }, ticks: { color: '#7b8896', font: { size: 10.5 }, maxTicksLimit: 5 },
+              suggestedMin: p.min != null ? Math.min(p.min, Math.min.apply(null, vals)) - (p.max != null ? (p.max - p.min) * 0.15 : Math.abs(p.min) * 0.2) : undefined,
+              suggestedMax: p.max != null ? Math.max(p.max, Math.max.apply(null, vals)) + (p.min != null ? (p.max - p.min) * 0.15 : Math.abs(p.max) * 0.1) : undefined
+            }
+          }
+        },
+        plugins: [pluginBanda]
+      });
+      estado.graficos.push(ch);
+      var ley = document.createElement('div'); ley.className = 'leyenda';
+      ley.innerHTML = '<span><i class="l" style="background:' + colorLinea + '"></i>Lectura diaria</span>' +
+        (p.min != null || p.max != null ? '<span><i class="b"></i>Rango del contrato</span><span><i class="p"></i>Fuera de rango</span>' : '');
+      t.insertBefore(ley, stats);
+    }
+    return t;
+  }
+
+  /* ---------- carga de datos ---------- */
+  function horaDe(ts) { var d = new Date(ts); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function cargar() {
+    var clave = leer(K.clave);
+    $('actTxt').textContent = 'Actualizando…';
+    return servidor('serieDatos', clave).then(function (d) {
+      d.ts = Date.now();
+      estado.datos = d;
+      try { escribir(K.datos, JSON.stringify(d)); } catch (e) {}
+      $('avisoOffline').hidden = true;
+      mostrar();
+    }).catch(function (e) {
+      if (/clave/i.test(mensaje(e))) { borrar(K.clave); borrar(K.datos); mostrarLogin('La clave del panel cambió. Escribila de nuevo.'); return; }
+      var guard = null; try { guard = JSON.parse(leer(K.datos) || 'null'); } catch (x) {}
+      if (guard) {
+        estado.datos = guard; mostrar();
+        $('avisoOffline').hidden = false;
+        $('avisoOffline').textContent = (esDeRed(e) ? 'Sin conexión: ' : 'No se pudo actualizar: ') + 'se muestran los datos guardados a las ' + horaDe(guard.ts) + '.';
+      } else {
+        mostrarLogin(esDeRed(e) ? 'Sin conexión. Conectate a internet para cargar las gráficas.' : mensaje(e));
+      }
+    });
+  }
+  function mostrar() {
+    $('login').hidden = true; $('tablero').hidden = false; $('actualizado').hidden = false;
+    $('actTxt').textContent = 'Datos de las ' + horaDe(estado.datos.ts);
+    pintarTodo();
+  }
+  function mostrarLogin(err) {
+    $('tablero').hidden = true; $('actualizado').hidden = true; $('login').hidden = false;
+    $('loginError').hidden = !err; $('loginError').textContent = err || '';
+  }
+
+  $('entrar').addEventListener('click', function () {
+    var c = $('clave').value.trim(); if (!c) return;
+    var b = $('entrar'); b.disabled = true; b.textContent = 'Verificando…';
+    servidor('verificarVista', c).then(function () {
+      escribir(K.clave, c); $('clave').value = '';
+      return cargar();
+    }).catch(function (e) { mostrarLogin(esDeRed(e) ? 'Sin conexión. Intentá de nuevo con internet.' : mensaje(e)); })
+      .then(function () { b.disabled = false; b.textContent = 'Entrar'; });
+  });
+  $('clave').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('entrar').click(); });
+  $('segDias').addEventListener('click', function (e) {
+    var d = Number(e.target.dataset && e.target.dataset.d); if (!d) return;
+    estado.dias = d; escribir(K.dias, String(d)); pintarTodo();
+  });
+  $('refrescar').addEventListener('click', cargar);
+  $('salir').addEventListener('click', function () { borrar(K.clave); borrar(K.datos); mostrarLogin(''); });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && estado.datos && Date.now() - estado.datos.ts > 10 * 60000) cargar();
+  });
+
+  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(URL_API)) { mostrarLogin('Falta configurar el link de Google en config.js.'); return; }
+  if (!window.Chart) { mostrarLogin('No se pudo cargar el componente de gráficas. Recargá la página.'); return; }
+  if (leer(K.clave)) {
+    var guard = null; try { guard = JSON.parse(leer(K.datos) || 'null'); } catch (x) {}
+    if (guard) { estado.datos = guard; mostrar(); }
+    cargar();
+  } else mostrarLogin('');
+
+  if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+})();
+</script>
+</body>
+</html>

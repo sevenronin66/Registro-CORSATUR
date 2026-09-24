@@ -1,0 +1,18 @@
+{
+  "id": "./panel.html",
+  "name": "Panel PTAR · HIDROPUR",
+  "short_name": "Panel PTAR",
+  "description": "Gráficas de los parámetros de la PTAR (solo consulta)",
+  "lang": "es",
+  "start_url": "./panel.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#0B3D63",
+  "icons": [
+    { "src": "icon-panel-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-panel-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-panel-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,7 +1,7 @@
 // Guarda la app en el teléfono para que abra aunque no haya señal.
 // Si cambiás algún archivo de la app, subí también este número (v2, v3…) para que los teléfonos se actualicen.
-const VERSION = 'ptar-v1';
-const ARCHIVOS = ['./', './index.html', './config.js', './manifest.webmanifest', './marca.svg',
+const VERSION = 'ptar-v2';
+const ARCHIVOS = ['./', './index.html', './panel.html', './config.js', './manifest.webmanifest', './manifest-panel.webmanifest', './marca.svg', './icon-panel-192.png', './icon-panel-512.png', './chart.umd.min.js',
   './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png', './favicon.png'];
 
 self.addEventListener('install', (e) => {
